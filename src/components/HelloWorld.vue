@@ -128,7 +128,7 @@ export default {
   }
   this.children.splice(0);
   console.log("child", this.children);
-
+/*
   // Unpack the prediction arrays
   const boxes = predictions[0].arraySync();
   const scores = predictions[1].arraySync();
@@ -154,7 +154,8 @@ export default {
     const klassIndex = classes[i];
     console.log("Klasss", klassIndex, classes[0][i]);
     console.log("box", boxes);
-    console.log("class", classes);
+    console.log("classes i ", klassIndex);
+    console.log("score i"+ score)
 
     if (score > 0.7 && klassIndex >= 0 && klassIndex < this.names.length) {
       const klass = this.names[klassIndex];
@@ -173,7 +174,52 @@ export default {
 
       console.log("childern2", this.children);
     }
+  }*/
+  // Unpack the prediction arrays
+const boxes = predictions[0].arraySync();
+const scores = predictions[1].arraySync();
+const classes = predictions[2].arraySync();
+const validPredictions = predictions[3].arraySync()[0];
+
+console.log("Valid Predictions: " + validPredictions );
+
+// Iterate through valid predictions
+for (let i = 0; i < validPredictions; ++i) {
+  const currentBox = boxes[0][i]; // Access the first (and only) batch
+  const score = scores[0][i];
+  const klassIndex = classes[0][i];
+
+  // Check if the current prediction is valid
+  if (score > 0.7 && klassIndex >= 0 && klassIndex < this.names.length) {
+    const klass = this.names[klassIndex];
+    
+    // Extract bounding box coordinates
+    const [y1, x1, y2, x2] = currentBox;
+
+    // Calculate dimensions and positions
+    const width_ = (x2 - x1) * this.vidWidth;
+    const height_ = (y2 - y1) * this.vidHeight;
+    const minY = (y1 * this.vidHeight + this.yStart).toFixed(0);
+    const minX = (x1 * this.vidWidth + this.xStart).toFixed(0);
+
+    // Create and append highlighter element for bounding box
+    const highlighter = document.createElement("div");
+    highlighter.setAttribute("class", "highlighter");
+    highlighter.style = `left: ${minX}px; top: ${minY}px; width: ${width_}px; height: ${height_}px;`;
+    liveView.appendChild(highlighter);
+    this.children.push(highlighter);
+
+    // Create and append label element for the component name
+    const label = document.createElement("div");
+    label.setAttribute("class", "label");
+    label.style = `left: ${minX}px; top: ${minY}px;`;
+    label.innerHTML = `<p>${klass}</p>`;
+    liveView.appendChild(label);
+    this.children.push(label);
   }
+}
+
+
 },
 
   },
