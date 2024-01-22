@@ -45,6 +45,7 @@ export default {
     },
     async enableCam() {
       if (!this.model) {
+        console.log("no model");
         return;
       }
       this.enableWebcamButton.classList.add("removed");
@@ -57,6 +58,7 @@ export default {
           facingMode: "environment",
         },
       }).then((stream) => {
+        console.log("inside getusermedia before refrencing webcam ");
         let video = this.$refs.webcam;
         console.log("eee", video)
         video.srcObject = stream;
@@ -181,6 +183,7 @@ export default {
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
     if (this.getUserMediaSupported()) {
+      console.log("*****inside get user media supported******");
       this.enableWebcamButton.addEventListener("click", this.enableCam);
     } else {
       console.warn("getUserMedia() is not supported by your browser");
