@@ -1,12 +1,16 @@
 <template>
   <div>
+    <div class="background" :style="{ backgroundImage: 'url(' + require('@/assets/robot.jpg') + ')' }">
+
+  
     <h1>Object Detection</h1>
     <section id="demos">
       <div ref="liveView">
         <button @click="enableCam" class="invisible" ref="enableWebcamButton">Loading...</button>
-        <video ref="webcam" class="background" width="640" height="640" playsinline crossorigin="anonymous"></video>
+        <video ref="webcam" class="video" width="640" height="640" playsinline crossorigin="anonymous"></video>
       </div>
     </section>
+    </div>
   </div>
 </template>
 
@@ -16,7 +20,7 @@
 import * as tf from '@tensorflow/tfjs';
 import { toRaw } from 'vue';
 export default {
-  name: 'HelloWorld',
+  name: 'Detection',
   data() {
     return {
       vidWidth: 0,
@@ -36,7 +40,7 @@ export default {
         'carte_arduino',
         'moteur_courant_continu',
         'moteur_pas_a_pas'
-      ],
+      ]
     };
   },
   methods: {
@@ -45,7 +49,7 @@ export default {
     },
     async enableCam() {
       if (!this.model) {
-        console.log("no model");
+  
         return;
       }
       this.enableWebcamButton.classList.add("removed");
@@ -58,9 +62,9 @@ export default {
           facingMode: "environment",
         },
       }).then((stream) => {
-        console.log("inside getusermedia before refrencing webcam ");
+
         let video = this.$refs.webcam;
-        console.log("eee", video)
+      
         video.srcObject = stream;
         video.onloadedmetadata = () => {
           this.vidWidth = 300;
@@ -86,11 +90,11 @@ export default {
 
       console.log("Model loaded");
       this.enableWebcamButton.classList.remove("invisible");
-      this.enableWebcamButton.innerHTML = "Start camera";
+      this.enableWebcamButton.innerHTML = "Start Camera !";
     },
     async predictWebcamTF() {
       const video = this.$refs.webcam;
-      console.log("hello prd", video);
+ 
       await tf.nextFrame();
       const tfImg = tf.browser.fromPixels(video);
 
@@ -122,102 +126,104 @@ export default {
 
     renderPredictionBoxes(predictions) {
   const liveView = this.$refs.liveView;
-  console.log("liveView", this.$refs);
+
   for (let i = 0; i < this.children.length; i++) {
     liveView.removeChild(this.children[i]);
   }
   this.children.splice(0);
-  console.log("child", this.children);
-/*
-  // Unpack the prediction arrays
-  const boxes = predictions[0].arraySync();
-  const scores = predictions[1].arraySync();
-  const classes = predictions[2].arraySync();
-  const validPredictions = predictions[3].arraySync()[0];
-  console.log("validPredictions"+validPredictions);
-  for (let i = 0; i < validPredictions; ++i) {
-    console.log("boxes["+i+"   "+boxes[i]);
-    const currentBox = boxes[i];
-    if (!currentBox) {
-      console.warn(`Skipping invalid box at index ${i}.`);
-      continue;
-    }
 
-    const [y1, x1, y2, x2] = currentBox;
 
-    if (x1 === undefined || x2 === undefined || y1 === undefined || y2 === undefined) {
-      console.warn(`Skipping invalid box at index ${i}.`);
-      continue;
-    }
-   
-    const score = scores[i];
-    const klassIndex = classes[i];
-    console.log("Klasss", klassIndex, classes[0][i]);
-    console.log("box", boxes);
-    console.log("classes i ", klassIndex);
-    console.log("score i"+ score)
-
-    if (score > 0.7 && klassIndex >= 0 && klassIndex < this.names.length) {
-      const klass = this.names[klassIndex];
-      const width_ = (x2 - x1) * this.vidWidth;
-      const height_ = (y2 - y1) * this.vidHeight;
-
-      const minY = (y1 * this.vidHeight + this.yStart).toFixed(0);
-      const minX = (x1 * this.vidWidth + this.xStart).toFixed(0);
-
-      const highlighter = document.createElement("div");
-      highlighter.setAttribute("class", "highlighter");
-      highlighter.style = `left: ${minX}px; top: ${minY}px; width: ${width_}px; height: ${height_}px;`;
-      highlighter.innerHTML = `<p>${Math.round(score * 100)}% ${klass}</p>`;
-      liveView.appendChild(highlighter);
-      this.children.push(highlighter);
-
-      console.log("childern2", this.children);
-    }
-  }*/
-  // Unpack the prediction arrays
+// Extract necessary information from predictions
 const boxes = predictions[0].arraySync();
 const scores = predictions[1].arraySync();
 const classes = predictions[2].arraySync();
 const validPredictions = predictions[3].arraySync()[0];
 
-console.log("Valid Predictions: " + validPredictions );
+console.log("Valid Predictions: " + validPredictions);
+console.log("scores" +scores+" scores 1 "+scores[1]);
+console.log("classes" +classes+" classes 1 "+classes[1]);
 
-// Iterate through valid predictions
-for (let i = 0; i < validPredictions; ++i) {
-  const currentBox = boxes[0][i]; // Access the first (and only) batch
-  const score = scores[0][i];
-  const klassIndex = classes[0][i];
+//************************************ */
+// Assuming this code is inside a non-async function or top-level code
 
-  // Check if the current prediction is valid
-  if (score > 0.7 && klassIndex >= 0 && klassIndex < this.names.length) {
-    const klass = this.names[klassIndex];
-    
-    // Extract bounding box coordinates
-    const [y1, x1, y2, x2] = currentBox;
+(async () => {
+  // Assuming boxes and scores are your bounding box coordinates and scores respectively
+  const numBoxes = boxes[0].length;
+  const boxesTensor = tf.tensor2d(boxes[0], [numBoxes, 4]);
 
-    // Calculate dimensions and positions
-    const width_ = (x2 - x1) * this.vidWidth;
-    const height_ = (y2 - y1) * this.vidHeight;
-    const minY = (y1 * this.vidHeight + this.yStart).toFixed(0);
-    const minX = (x1 * this.vidWidth + this.xStart).toFixed(0);
+  const nmsIndices = await tf.image.nonMaxSuppressionAsync(
+    boxesTensor,
+    tf.tensor1d(scores[0]),
+    0.7, // Adjust the IoU threshold as needed
+  );
 
-    // Create and append highlighter element for bounding box
-    const highlighter = document.createElement("div");
-    highlighter.setAttribute("class", "highlighter");
-    highlighter.style = `left: ${minX}px; top: ${minY}px; width: ${width_}px; height: ${height_}px;`;
-    liveView.appendChild(highlighter);
-    this.children.push(highlighter);
+  // Now nmsBoxes and nmsScores contain the non-maximum suppressed bounding boxes and scores
 
-    // Create and append label element for the component name
-    const label = document.createElement("div");
-    label.setAttribute("class", "label");
-    label.style = `left: ${minX}px; top: ${minY}px;`;
-    label.innerHTML = `<p>${klass}</p>`;
-    liveView.appendChild(label);
-    this.children.push(label);
-  }
-}
+  // Iterate through valid predictions after NMS
+  const nmsIndicesArray = await nmsIndices.array();
+
+  nmsIndicesArray.forEach(i => {
+    const currentBox = boxes[0][i];
+    const score = scores[0][i];
+    const klassIndex = classes[0][i];
+
+    // Check if the current prediction is valid
+    if (score > 0.7 && klassIndex >= 0 && klassIndex < this.names.length) {
+      const klass = this.names[klassIndex];
+
+      // Extract bounding box coordinates
+      const [y1, x1, y2, x2] = currentBox;
+
+      // Calculate dimensions and positions
+      const width_ = (x2 - x1) * this.vidWidth;
+      const height_ = (y2 - y1) * this.vidHeight;
+      const minY = (y1 * this.vidHeight + this.yStart).toFixed(0);
+      const minX = (x1 * this.vidWidth + this.xStart).toFixed(0);
+
+      // Add constraint: Skip if width or height is too small
+      const minWidthThreshold = '10px'; // Set your minimum width threshold
+      const minHeightThreshold = '10px'; // Set your minimum height threshold
+      if (width_ < minWidthThreshold || height_ < minHeightThreshold) {
+        return; // Skip displaying this bounding box
+      }
+      // Create and append highlighter element for bounding box
+      const highlighter = document.createElement("div");
+      highlighter.setAttribute("class", "highlighter");
+      highlighter.style = `
+        left: ${minX}px;
+        top: ${minY}px;
+        width: ${width_}px;
+        height: ${height_}px;
+        border: 2px solid white;
+        box-shadow: 0 0 50px 0 white;
+        z-index: 1;
+        position: fixed;
+        display: grid;
+        place-content: center;
+      `;
+
+      liveView.appendChild(highlighter);
+      this.children.push(highlighter);
+
+
+      // Create and append label element for the component name
+      const label = document.createElement("div");
+      label.setAttribute("class", "label");
+      label.style = `
+        left: ${minX}px;
+        top: ${minY}px;
+        color: white;
+        position: fixed;  // Make sure the label is positioned relative to the document
+        display: grid;
+        place-content: center;
+      `;
+      label.innerHTML = `<p>${klass}</p>`;
+      liveView.appendChild(label);
+      this.children.push(label);
+    }
+  });
+})();
+
 
 
 },
@@ -229,15 +235,14 @@ for (let i = 0; i < validPredictions; ++i) {
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
     if (this.getUserMediaSupported()) {
-      console.log("*****inside get user media supported******");
+
       this.enableWebcamButton.addEventListener("click", this.enableCam);
     } else {
       console.warn("getUserMedia() is not supported by your browser");
     }
 
     await this.asyncLoadModel();
-    // Start the continuous prediction loop
-    // requestAnimationFrame(this.predictWebcamTF);
+   
   },
 };
 </script>
@@ -265,16 +270,17 @@ button {
   border-radius: 4px;
   cursor: pointer;
   padding: 10px 30px;
-  background-color: #0060DF;
-  border: solid 1px #0060DF;
+  background-color: #1e5d87;
+  border: solid 1px #1e5d87;
   color: #FFF;
   pointer-events: all;
   transition: .2s ease;
   position: absolute;
   top: 20px;
-  left: 20px;
+  left: 600px;
   position: fixed;
 }
+
 
 .removed {
   opacity: 0;
@@ -309,14 +315,23 @@ button {
   display: grid;
   place-content: center;
 }
-
-.background {
-
-  position: fixed;
-  z-index: -1000;
-  left: 0;
-  top: 0;
-  background: black;
+.label p {
+  padding: 5px;
+ 
+  font-size: 10px; /* Adjust font size as needed */
+  color: white;
+  position: absolute;
+ 
+}.background {
+  background-size: contain; /* Use "contain" to fit the entire image while maintaining its aspect ratio */
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+
+
 </style>
 

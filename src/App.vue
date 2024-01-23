@@ -1,15 +1,15 @@
 <template>
   
-  <HelloWorld />
+  <Detection />
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import Detection from './components/Detection.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    Detection
   }
 }
 </script>
